@@ -47,28 +47,16 @@ FILE_PARTICIPANTS = "participantslist.xlsx"
 # ==========================================
 # INITIALIZATION HELPERS
 # ==========================================
-def ensure_sample_databases():
-    if not os.path.exists(DB_STUDENTS):
-        df_stud = pd.DataFrame([
-            {"ADM NO": "1001", "CHESTNO": "C101", "STUDENT NAME": "Ananya Nair", "CLASS": "10", "SECTION": "A", "GENDER": "Female", "HOUSE": "Blue"},
-            {"ADM NO": "1002", "CHESTNO": "C102", "STUDENT NAME": "Rohan Kumar", "CLASS": "10", "SECTION": "B", "GENDER": "Male", "HOUSE": "Red"},
-            {"ADM NO": "1003", "CHESTNO": "C103", "STUDENT NAME": "Devika S", "CLASS": "10", "SECTION": "A", "GENDER": "Female", "HOUSE": "Yellow"},
-            {"ADM NO": "1004", "CHESTNO": "C104", "STUDENT NAME": "Kevin Thomas", "CLASS": "10", "SECTION": "C", "GENDER": "Male", "HOUSE": "Green"},
-        ])
-        df_stud.to_excel(DB_STUDENTS, index=False)
+from pathlib import Path
 
-    if not os.path.exists(DB_ITEMS):
-        df_items = pd.DataFrame([
-            {"ITEMCODE": "101", "ITEMNAME": "Light Music", "ONSTAGE/OFFSTAGE": "ONSTAGE", "SINGLE/GROUP": "SINGLE"},
-            {"ITEMCODE": "102", "ITEMNAME": "Classical Dance", "ONSTAGE/OFFSTAGE": "ONSTAGE", "SINGLE/GROUP": "SINGLE"},
-            {"ITEMCODE": "103", "ITEMNAME": "Margamkali", "ONSTAGE/OFFSTAGE": "ONSTAGE", "SINGLE/GROUP": "GROUP"},
-            {"ITEMCODE": "201", "ITEMNAME": "Pencil Drawing", "ONSTAGE/OFFSTAGE": "OFFSTAGE", "SINGLE/GROUP": "SINGLE"},
-            {"ITEMCODE": "202", "ITEMNAME": "Essay Writing", "ONSTAGE/OFFSTAGE": "OFFSTAGE", "SINGLE/GROUP": "SINGLE"},
-            {"ITEMCODE": "203", "ITEMNAME": "Group Quiz", "ONSTAGE/OFFSTAGE": "OFFSTAGE", "SINGLE/GROUP": "GROUP"},
-        ])
-        df_items.to_excel(DB_ITEMS, index=False)
+DB_STUDENTS = Path("STUDENTDB.xlsx")
+DB_ITEMS = Path("ITEMS.xlsx")
 
-#ensure_sample_databases()
+st.write(DB_STUDENTS.exists())
+st.write(DB_ITEMS.exists())
+
+df = pd.read_excel(DB_STUDENTS, engine="openpyxl")
+st.write(df.head())
 
 # ==========================================
 # APP HEADER
