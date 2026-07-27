@@ -13,7 +13,7 @@ st.set_page_config(
     layout="wide",
 )
 
-# Custom CSS for dark theme, toggle buttons (Red = Unselected, Green = Selected)
+# Custom CSS for dark theme and custom button color states (Red = Unselected, Green = Selected)
 st.markdown("""
     <style>
     .main {
@@ -28,13 +28,23 @@ st.markdown("""
         border: 2px solid rgba(255,255,255,0.1);
         transition: all 0.2s ease;
     }
-    /* Default Red State for unselected item buttons */
-    div[data-testid="column"] button {
+    /* Red styling for unselected item buttons */
+    .red-btn button {
         background-color: #E74C3C !important;
         color: white !important;
     }
-    div[data-testid="column"] button:hover {
+    .red-btn button:hover {
         background-color: #C0392B !important;
+        border-color: #FFFFFF !important;
+    }
+    /* Green styling for selected item buttons */
+    .green-btn button {
+        background-color: #27AE60 !important;
+        color: white !important;
+        border-color: #2ECC71 !important;
+    }
+    .green-btn button:hover {
+        background-color: #219653 !important;
         border-color: #FFFFFF !important;
     }
     </style>
@@ -115,16 +125,9 @@ if adm_no:
                 with cols[i % 3]:
                     button_label = f"✔ {name} ({cat} - {sg})" if is_selected else f"{name} ({cat} - {sg})"
                     
-                    if is_selected:
-                        st.markdown(f"""
-                            <style>
-                            div.stButton > button[kind="secondary"][data-baseweb="button"]:has-text("{name}") {{
-                                background-color: #27AE60 !important;
-                                border-color: #2ECC71 !important;
-                            }}
-                            </style>
-                        """, unsafe_allow_html=True)
-                    
+                    # Wrap each button inside a styled container div to enforce Red/Green background reliably
+                    css_class = "green-btn" if is_selected else "red-btn"
+                    st.markdown(f'<div class="{css_class}">', unsafe_allow_html=True)
                     if st.button(button_label, key=f"btn_{code}"):
                         if is_selected:
                             del st.session_state.selected_items[code]
@@ -137,6 +140,7 @@ if adm_no:
                                 "student": s_data
                             }
                         st.rerun()
+                    st.markdown('</div>', unsafe_allow_html=True)
 
             sel_list = list(st.session_state.selected_items.values())
             on_cnt = sum(1 for item in sel_list if item["type"] == "ONSTAGE")
