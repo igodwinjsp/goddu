@@ -13,7 +13,7 @@ st.set_page_config(
     layout="wide",
 )
 
-# Custom CSS for dark theme and touch targets
+# Custom CSS for dark theme, toggle buttons (Red = Unselected, Green = Selected)
 st.markdown("""
     <style>
     .main {
@@ -24,7 +24,18 @@ st.markdown("""
         width: 100%;
         border-radius: 8px;
         font-weight: bold;
-        height: 3em;
+        height: 3.5em;
+        border: 2px solid rgba(255,255,255,0.1);
+        transition: all 0.2s ease;
+    }
+    /* Default Red State for unselected item buttons */
+    div[data-testid="column"] button {
+        background-color: #E74C3C !important;
+        color: white !important;
+    }
+    div[data-testid="column"] button:hover {
+        background-color: #C0392B !important;
+        border-color: #FFFFFF !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -35,17 +46,29 @@ st.markdown("""
 DB_STUDENTS = Path("STUDENTDB.XLSX")
 DB_ITEMS = Path("ITEMS.XLSX")
 FILE_PARTICIPANTS = Path("participantslist.xlsx")
+DOWNLOAD_PASSWORD = "goddu@yf26"
 
 # ==========================================
 # INITIALIZATION HELPERS
 # ==========================================
-# Ensure sample/base participation file exists if missing
 if not FILE_PARTICIPANTS.exists():
     df_empty = pd.DataFrame(columns=[
         "ADM NO", "CHESTNO", "STUDENT NAME", "CLASS", "SECTION", 
         "GENDER", "HOUSE", "ITEMCODE", "ITEMNAME", "ONSTAGE/OFFSTAGE", "SINGLE/GROUP"
     ])
     df_empty.to_excel(FILE_PARTICIPANTS, index=False)
+
+# ==========================================
+# SESSION STATE INITIALIZATION
+# ==========================================
+if "selected_items" not in st.session_state:
+    st.session_state.selected_items = {}
+
+if "current_adm_no" not in st.session_state:
+    st.session_state.current_adm_no = ""
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
 
 # ==========================================
 # APP HEADER
@@ -58,7 +81,12 @@ st.write("---")
 # 1. ENTRY FOR PARTICIPATION (ISOLATED VIEW)
 # ==========================================
 st.subheader("1. Entry for Participation")
-adm_no = st.text_input("Enter Admission No:").strip()
+adm_no = st.text_input("Enter Admission No:", value=st.session_state.current_adm_no).strip()
+
+# Reset selections if admission number changes
+if adm_no != st.session_state.current_adm_no:
+    st.session_state.current_adm_no = adm_no
+    st.session_state.selected_items = {}
 
 if adm_no:
     if DB_STUDENTS.exists() and DB_ITEMS.exists():
@@ -73,9 +101,8 @@ if adm_no:
             st.success(f"Student: **{s_data['STUDENT NAME']}** | Chest No: **{s_data['CHESTNO']}** | Class: **{s_data['CLASS']}-{s_data['SECTION']}** | House: **{s_data['HOUSE']}**")
             
             df_items = pd.read_excel(DB_ITEMS, engine="openpyxl")
-            st.write("Select items below:")
+            st.write("Click items to select (Red = Available, Green = Selected):")
             
-            selected_items = []
             cols = st.columns(3)
             for i, row in df_items.iterrows():
                 code = str(row["ITEMCODE"]).strip()
@@ -83,21 +110,46 @@ if adm_no:
                 cat = str(row["ONSTAGE/OFFSTAGE"]).strip().upper()
                 sg = str(row["SINGLE/GROUP"]).strip().upper()
                 
+                is_selected = code in st.session_state.selected_items
+                
                 with cols[i % 3]:
-                    if st.checkbox(f"{name} ({cat} - {sg})", key=code):
-                        selected_items.append({"code": code, "name": name, "type": cat, "single_group": sg, "student": s_data})
-            
-            if st.button("Confirm & Save Registration"):
-                if not selected_items:
+                    button_label = f"✔ {name} ({cat} - {sg})" if is_selected else f"{name} ({cat} - {sg})"
+                    
+                    if is_selected:
+                        st.markdown(f"""
+                            <style>
+                            div.stButton > button[kind="secondary"][data-baseweb="button"]:has-text("{name}") {{
+                                background-color: #27AE60 !important;
+                                border-color: #2ECC71 !important;
+                            }}
+                            </style>
+                        """, unsafe_allow_html=True)
+                    
+                    if st.button(button_label, key=f"btn_{code}"):
+                        if is_selected:
+                            del st.session_state.selected_items[code]
+                        else:
+                            st.session_state.selected_items[code] = {
+                                "code": code, 
+                                "name": name, 
+                                "type": cat, 
+                                "single_group": sg, 
+                                "student": s_data
+                            }
+                        st.rerun()
+
+            sel_list = list(st.session_state.selected_items.values())
+            on_cnt = sum(1 for item in sel_list if item["type"] == "ONSTAGE")
+            off_cnt = sum(1 for item in sel_list if item["type"] == "OFFSTAGE")
+            st.info(f"Current Selection Summary — Onstage: {on_cnt}/2 | Offstage: {off_cnt}/2 (Total: {len(sel_list)}/4)")
+
+            if st.button("Confirm & Save Registration", type="primary"):
+                if not sel_list:
                     st.warning("No items selected!")
                 else:
-                    onstage_count = sum(1 for item in selected_items if item["type"] == "ONSTAGE")
-                    offstage_count = sum(1 for item in selected_items if item["type"] == "OFFSTAGE")
-                    
-                    if len(selected_items) > 4 or onstage_count > 2 or offstage_count > 2:
-                        st.error(f"Criteria Violation! Selection: {onstage_count} Onstage, {offstage_count} Offstage. Max allowed: 2 Onstage + 2 Offstage (Total 4).")
+                    if len(sel_list) > 4 or on_cnt > 2 or off_cnt > 2:
+                        st.error(f"Criteria Violation! Selection: {on_cnt} Onstage, {off_cnt} Offstage. Max allowed: 2 Onstage + 2 Offstage (Total 4).")
                     else:
-                        # Load existing participants to check for duplicates
                         if FILE_PARTICIPANTS.exists():
                             df_existing = pd.read_excel(FILE_PARTICIPANTS, engine="openpyxl")
                             df_existing["ADM NO"] = df_existing["ADM NO"].astype(str).str.strip()
@@ -108,12 +160,11 @@ if adm_no:
                         new_records = []
                         duplicate_items = []
 
-                        for item in selected_items:
+                        for item in sel_list:
                             st_info = item["student"]
                             a_no = str(st_info["ADM NO"]).strip()
                             i_code = str(item["code"]).strip()
 
-                            # Check if admission number + item code already exists
                             already_registered = False
                             if not df_existing.empty:
                                 match = df_existing[
@@ -152,18 +203,34 @@ if adm_no:
                             
                             df_final.to_excel(FILE_PARTICIPANTS, index=False, engine="openpyxl")
                             st.success("Registration saved successfully for new items!")
+                            st.session_state.selected_items = {}
     else:
         st.error("Required database files (`STUDENTDB.XLSX` or `ITEMS.XLSX`) are missing from the repository directory.")
+
 # ==========================================
-# DOWNLOAD PARTICIPANTS LIST
+# SECURE DOWNLOAD PARTICIPANTS LIST
 # ==========================================
 st.write("---")
-st.subheader("📥 Export Registrations")
-if FILE_PARTICIPANTS.exists():
-    with open(FILE_PARTICIPANTS, "rb") as f:
-        st.download_button(
-            label="Download Current participantslist.xlsx",
-            data=f,
-            file_name="participantslist.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )        
+st.subheader("📥 Export Registrations (Admin Only)")
+
+if not st.session_state.authenticated:
+    entered_password = st.text_input("Enter Admin Password to Unlock Download:", type="password")
+    if st.button("Unlock Export"):
+        if entered_password == DOWNLOAD_PASSWORD:
+            st.session_state.authenticated = True
+            st.rerun()
+        else:
+            st.error("Incorrect Password!")
+else:
+    st.success("Authenticated successfully!")
+    if FILE_PARTICIPANTS.exists():
+        with open(FILE_PARTICIPANTS, "rb") as f:
+            st.download_button(
+                label="Download Current participantslist.xlsx",
+                data=f,
+                file_name="participantslist.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+    if st.button("Lock Export Again"):
+        st.session_state.authenticated = False
+        st.rerun()
