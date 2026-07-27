@@ -13,7 +13,7 @@ st.set_page_config(
     layout="wide",
 )
 
-# Custom CSS for guaranteed Red (unselected) and Green (selected) button styling
+# Custom CSS targeting button elements directly so unselected items are Red and selected items turn Green
 st.markdown("""
     <style>
     .main {
@@ -21,7 +21,7 @@ st.markdown("""
         color: #CDD6F4;
     }
     
-    /* Base button sizing and layout */
+    /* Global button base styling */
     .stButton>button {
         width: 100%;
         border-radius: 8px;
@@ -31,26 +31,24 @@ st.markdown("""
         transition: all 0.2s ease;
     }
 
-    /* Force RED styling for unselected state */
-    div.red-btn button, div.red-btn button:focus, div.red-btn button:active {
-        background-color: #D9534F !important;
+    /* Unselected item buttons -> RED */
+    div[data-testid="column"] button {
+        background-color: #C0392B !important;
         color: #FFFFFF !important;
     }
-    div.red-btn button:hover {
-        background-color: #C9302C !important;
-        color: #FFFFFF !important;
+    div[data-testid="column"] button:hover {
+        background-color: #A93226 !important;
         border-color: #FFFFFF !important;
     }
 
-    /* Force GREEN styling for selected state */
-    div.green-btn button, div.green-btn button:focus, div.green-btn button:active {
-        background-color: #449D44 !important;
+    /* Selected item buttons -> GREEN (Using attribute selector and state hook classes) */
+    div[data-testid="column"] button.selected-item-btn {
+        background-color: #27AE60 !important;
         color: #FFFFFF !important;
         border-color: #2ECC71 !important;
     }
-    div.green-btn button:hover {
-        background-color: #398439 !important;
-        color: #FFFFFF !important;
+    div[data-testid="column"] button.selected-item-btn:hover {
+        background-color: #219653 !important;
         border-color: #FFFFFF !important;
     }
     </style>
@@ -131,9 +129,17 @@ if adm_no:
                 with cols[i % 3]:
                     button_label = f"✔ {name} ({cat} - {sg})" if is_selected else f"{name} ({cat} - {sg})"
                     
-                    css_class = "green-btn" if is_selected else "red-btn"
+                    # Inject local style override right above the button block for exact color targeting
+                    if is_selected:
+                        st.markdown(f"""
+                            <style>
+                            div[data-testid="column"] button:has-text("{name}") {{
+                                background-color: #27AE60 !important;
+                                border-color: #2ECC71 !important;
+                            }}
+                            </style>
+                        """, unsafe_allow_html=True)
                     
-                    st.markdown(f'<div class="{css_class}">', unsafe_allow_html=True)
                     if st.button(button_label, key=f"btn_{code}"):
                         if is_selected:
                             del st.session_state.selected_items[code]
@@ -146,7 +152,6 @@ if adm_no:
                                 "student": s_data
                             }
                         st.rerun()
-                    st.markdown('</div>', unsafe_allow_html=True)
 
             sel_list = list(st.session_state.selected_items.values())
             on_cnt = sum(1 for item in sel_list if item["type"] == "ONSTAGE")
