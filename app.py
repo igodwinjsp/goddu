@@ -112,7 +112,9 @@ if adm_no:
             st.error("Admission Number not found!")
         else:
             s_data = student.iloc[0]
-            st.success(f"Student: **{s_data['STUDENT NAME']}** | Chest No: **{s_data['CHESTNO']}** | Class: **{s_data['CLASS']}-{s_data['SECTION']}** | House: **{s_data['HOUSE']}**")
+            student_gender = str(s_data.get("GENDER", "")).strip().upper()
+            
+            st.success(f"Student: **{s_data['STUDENT NAME']}** | Chest No: **{s_data['CHESTNO']}** | Class: **{s_data['CLASS']}-{s_data['SECTION']}** | Gender: **{student_gender}** | House: **{s_data['HOUSE']}**")
             
             df_items = pd.read_excel(DB_ITEMS, engine="openpyxl")
             st.write("Click items to select (Red = Available, Green = Selected):")
@@ -123,47 +125,66 @@ if adm_no:
                 name = str(row["ITEMNAME"]).strip()
                 cat = str(row["ONSTAGE/OFFSTAGE"]).strip().upper()
                 sg = str(row["SINGLE/GROUP"]).strip().upper()
-                
+                item_gender = str(row.get("BOYS/GIRLS/COMMON", "COMMON")).strip().upper()
+
+                # Gender validation check per item
+                allowed = True
+                if item_gender == "BOYS" and student_gender != "MALE":
+                    allowed = False
+                elif item_gender == "GIRLS" and student_gender != "FEMALE":
+                    allowed = False
+
                 is_selected = code in st.session_state.selected_items
                 
                 with cols[i % 3]:
-                    button_label = f"✔ {name} ({cat} - {sg})" if is_selected else f"{name} ({cat} - {sg})"
-                    
-                    # Inject local style override right above the button block for exact color targeting
-                    if is_selected:
-                        st.markdown(f"""
-                            <style>
-                            div[data-testid="column"] button:has-text("{name}") {{
-                                background-color: #27AE60 !important;
-                                border-color: #2ECC71 !important;
-                            }}
-                            </style>
-                        """, unsafe_allow_html=True)
-                    
-                    if st.button(button_label, key=f"btn_{code}"):
+                    if not allowed:
+                        st.button(f"NOT ALLOWED\n{name}", disabled=True, key=f"item_{code}")
+                    else:
+                        button_label = f"✔ {name} ({cat} - {sg})" if is_selected else f"{name} ({cat} - {sg})"
+                        
+                        # Inject local style override right above the button block for exact color targeting
                         if is_selected:
-                            del st.session_state.selected_items[code]
-                        else:
-                            st.session_state.selected_items[code] = {
-                                "code": code, 
-                                "name": name, 
-                                "type": cat, 
-                                "single_group": sg, 
-                                "student": s_data
-                            }
-                        st.rerun()
+                            st.markdown(f"""
+                                <style>
+                                div[data-testid="column"] button:has-text("{name}") {{
+                                    background-color: #27AE60 !important;
+                                    border-color: #2ECC71 !important;
+                                }}
+                                </style>
+                            """, unsafe_allow_html=True)
+                        
+                        if st.button(button_label, key=f"btn_{code}"):
+                            if is_selected:
+                                del st.session_state.selected_items[code]
+                            else:
+                                st.session_state.selected_items[code] = {
+                                    "code": code, 
+                                    "name": name, 
+                                    "type": cat, 
+                                    "single_group": sg, 
+                                    "gender_rule": item_gender,
+                                    "student": s_data
+                                }
+                            st.rerun()
 
             sel_list = list(st.session_state.selected_items.values())
-            on_cnt = sum(1 for item in sel_list if item["type"] == "ONSTAGE")
-            off_cnt = sum(1 for item in sel_list if item["type"] == "OFFSTAGE")
-            st.info(f"Current Selection Summary — Onstage: {on_cnt}/2 | Offstage: {off_cnt}/2 (Total: {len(sel_list)}/4)")
+            
+            # Event limitation criteria counters
+            indiv_count = sum(1 for item in sel_list if item["single_group"] == "SINGLE")
+            group_count = sum(1 for item in sel_list if item["single_group"] == "GROUP")
+            onstage_indiv_count = sum(1 for item in sel_list if item["single_group"] == "SINGLE" and item["type"] == "ONSTAGE")
+            offstage_indiv_count = sum(1 for item in sel_list if item["single_group"] == "SINGLE" and item["type"] == "OFFSTAGE")
+
+            st.info(f"Selection Summary — Individual: {indiv_count}/5 | Group: {group_count}/2 | On-stage Individual: {onstage_indiv_count}/3")
 
             if st.button("Confirm & Save Registration", type="primary"):
                 if not sel_list:
                     st.warning("No items selected!")
                 else:
-                    if len(sel_list) > 4 or on_cnt > 2 or off_cnt > 2:
-                        st.error(f"Criteria Violation! Selection: {on_cnt} Onstage, {off_cnt} Offstage. Max allowed: 2 Onstage + 2 Offstage (Total 4).")
+                    if indiv_count > 5 or group_count > 2 or onstage_indiv_count > 3:
+                        st.error(f"Criteria Violation: Individual ({indiv_count}/5), Group ({group_count}/2), On-stage Individual ({onstage_indiv_count}/3).")
+                    elif onstage_indiv_count == 0 and offstage_indiv_count > 5:
+                        st.error("Criteria Violation: Non-onstage participants are capped at 5 off-stage individual events.")
                     else:
                         if FILE_PARTICIPANTS.exists():
                             df_existing = pd.read_excel(FILE_PARTICIPANTS, engine="openpyxl")
