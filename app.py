@@ -13,38 +13,44 @@ st.set_page_config(
     layout="wide",
 )
 
-# Custom CSS for dark theme and custom button color states (Red = Unselected, Green = Selected)
+# Custom CSS for guaranteed Red (unselected) and Green (selected) button styling
 st.markdown("""
     <style>
     .main {
         background-color: #1E1E2E;
         color: #CDD6F4;
     }
+    
+    /* Base button sizing and layout */
     .stButton>button {
         width: 100%;
         border-radius: 8px;
         font-weight: bold;
         height: 3.5em;
-        border: 2px solid rgba(255,255,255,0.1);
+        border: 2px solid rgba(255,255,255,0.2) !important;
         transition: all 0.2s ease;
     }
-    /* Red styling for unselected item buttons */
-    .red-btn button {
-        background-color: #E74C3C !important;
-        color: white !important;
+
+    /* Force RED styling for unselected state */
+    div.red-btn button, div.red-btn button:focus, div.red-btn button:active {
+        background-color: #D9534F !important;
+        color: #FFFFFF !important;
     }
-    .red-btn button:hover {
-        background-color: #C0392B !important;
+    div.red-btn button:hover {
+        background-color: #C9302C !important;
+        color: #FFFFFF !important;
         border-color: #FFFFFF !important;
     }
-    /* Green styling for selected item buttons */
-    .green-btn button {
-        background-color: #27AE60 !important;
-        color: white !important;
+
+    /* Force GREEN styling for selected state */
+    div.green-btn button, div.green-btn button:focus, div.green-btn button:active {
+        background-color: #449D44 !important;
+        color: #FFFFFF !important;
         border-color: #2ECC71 !important;
     }
-    .green-btn button:hover {
-        background-color: #219653 !important;
+    div.green-btn button:hover {
+        background-color: #398439 !important;
+        color: #FFFFFF !important;
         border-color: #FFFFFF !important;
     }
     </style>
@@ -125,8 +131,8 @@ if adm_no:
                 with cols[i % 3]:
                     button_label = f"✔ {name} ({cat} - {sg})" if is_selected else f"{name} ({cat} - {sg})"
                     
-                    # Wrap each button inside a styled container div to enforce Red/Green background reliably
                     css_class = "green-btn" if is_selected else "red-btn"
+                    
                     st.markdown(f'<div class="{css_class}">', unsafe_allow_html=True)
                     if st.button(button_label, key=f"btn_{code}"):
                         if is_selected:
