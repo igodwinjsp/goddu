@@ -1,4 +1,5 @@
 import os
+import hashlib
 import streamlit as st
 import pandas as pd
 import openpyxl
@@ -60,7 +61,9 @@ st.markdown("""
 DB_STUDENTS = Path("STUDENTDB.XLSX")
 DB_ITEMS = Path("ITEMS.XLSX")
 FILE_PARTICIPANTS = Path("participantslist.xlsx")
-DOWNLOAD_PASSWORD = "goddu@yf26"
+
+# Admin password hash (SHA-256 for 'goddu@yf26')
+ADMIN_PASSWORD_HASH = hashlib.sha256("goddu@yf26".encode()).hexdigest()
 
 # ==========================================
 # INITIALIZATION HELPERS
@@ -244,21 +247,22 @@ if adm_no:
         st.error("Required database files (`STUDENTDB.XLSX` or `ITEMS.XLSX`) are missing from the repository directory.")
 
 # ==========================================
-# SECURE DOWNLOAD PARTICIPANTS LIST
+# SECURE DOWNLOAD & ADMIN MANAGEMENT
 # ==========================================
 st.write("---")
-st.subheader("📥 Export Registrations (Admin Only)")
+st.subheader("📥 Admin Management & Export")
 
 if not st.session_state.authenticated:
-    entered_password = st.text_input("Enter Admin Password to Unlock Download:", type="password")
-    if st.button("Unlock Export"):
-        if entered_password == DOWNLOAD_PASSWORD:
+    entered_password = st.text_input("Enter Admin Password to Unlock Management Options:", type="password")
+    if st.button("Unlock Admin Panel"):
+        if hashlib.sha256(entered_password.encode()).hexdigest() == ADMIN_PASSWORD_HASH:
             st.session_state.authenticated = True
             st.rerun()
         else:
             st.error("Incorrect Password!")
 else:
-    st.success("Authenticated successfully!")
+    st.success("Authenticated successfully as Admin!")
+    
     if FILE_PARTICIPANTS.exists():
         with open(FILE_PARTICIPANTS, "rb") as f:
             st.download_button(
@@ -267,6 +271,17 @@ else:
                 file_name="participantslist.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
-    if st.button("Lock Export Again"):
+            
+    st.write("---")
+    if st.button("⚠️ Clear All Participant Entries", type="secondary"):
+        df_empty = pd.DataFrame(columns=[
+            "ADM NO", "CHESTNO", "STUDENT NAME", "CLASS", "SECTION", 
+            "GENDER", "HOUSE", "ITEMCODE", "ITEMNAME", "ONSTAGE/OFFSTAGE", "SINGLE/GROUP"
+        ])
+        df_empty.to_excel(FILE_PARTICIPANTS, index=False, engine="openpyxl")
+        st.success("All participant entries have been securely cleared!")
+        st.rerun()
+
+    if st.button("Lock Admin Panel Again"):
         st.session_state.authenticated = False
         st.rerun()
