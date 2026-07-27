@@ -62,8 +62,13 @@ DB_STUDENTS = Path("STUDENTDB.XLSX")
 DB_ITEMS = Path("ITEMS.XLSX")
 FILE_PARTICIPANTS = Path("participantslist.xlsx")
 
-# Admin password hash (SHA-256 for 'goddu@yf26')
-ADMIN_PASSWORD_HASH = hashlib.sha256("goddu@yf26".encode()).hexdigest()
+# Admin password configuration using Streamlit Secrets for public safety
+# Make sure to add ADMIN_PASSWORD_HASH in your Streamlit Cloud app settings (Secrets).
+# Fallback hash provided just in case secrets aren't set up yet locally.
+try:
+    ADMIN_PASSWORD_HASH = st.secrets["ADMIN_PASSWORD_HASH"]
+except Exception:
+    ADMIN_PASSWORD_HASH = hashlib.sha256("goddu@yf26".encode()).hexdigest()
 
 # ==========================================
 # INITIALIZATION HELPERS
