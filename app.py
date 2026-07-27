@@ -154,3 +154,16 @@ if adm_no:
                             st.success("Registration saved successfully for new items!")
     else:
         st.error("Required database files (`STUDENTDB.XLSX` or `ITEMS.XLSX`) are missing from the repository directory.")
+# ==========================================
+# DOWNLOAD PARTICIPANTS LIST
+# ==========================================
+st.write("---")
+st.subheader("📥 Export Registrations")
+if FILE_PARTICIPANTS.exists():
+    with open(FILE_PARTICIPANTS, "rb") as f:
+        st.download_button(
+            label="Download Current participantslist.xlsx",
+            data=f,
+            file_name="participantslist.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )        
