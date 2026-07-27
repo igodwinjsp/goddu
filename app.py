@@ -2,6 +2,15 @@ import os
 import hashlib
 import streamlit as st
 import pandas as pd
+import sys
+import openpyxl
+
+st.write("Python :", sys.version)
+st.write("Pandas :", pd.__version__)
+st.write("Openpyxl :", openpyxl.__version__)
+st.write("DB_STUDENTS =", repr(DB_STUDENTS))
+
+
 
 # ==========================================
 # PAGE CONFIGURATION
@@ -59,7 +68,7 @@ def ensure_sample_databases():
         ])
         df_items.to_excel(DB_ITEMS, index=False)
 
-ensure_sample_databases()
+#ensure_sample_databases()
 
 # ==========================================
 # APP HEADER
