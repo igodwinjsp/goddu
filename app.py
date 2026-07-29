@@ -17,6 +17,16 @@ st.set_page_config(
     page_title="SKPS Youth Festival - Category IV Entry",
     layout="wide"
 )
+#gg
+# Check if registration is currently open from secrets (default to True if not set)
+REGISTRATION_OPEN = st.secrets.get("REGISTRATION_OPEN", True)
+
+if not REGISTRATION_OPEN:
+    st.warning("⛔ Registration is currently closed.")
+    st.info("If you have already registered, your details have been recorded. Please contact the administrator for any queries.")
+    st.stop()  # Stops execution of the rest of the app immediately
+
+#gg
 
 # ==========================================
 # SAFE CONCURRENT FILE HANDLING (FILELOCK)
