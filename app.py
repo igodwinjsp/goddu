@@ -5,8 +5,8 @@ import streamlit as st
 # ==========================================
 # CONSTANTS & CONFIGURATION
 # ==========================================
-DB_STUDENTS = "studentdb3.xlsx"
-DB_ITEMS = "items3.xlsx"
+DB_STUDENTS = "studentdb4.xlsx"
+DB_ITEMS = "items4.xlsx"
 FILE_PARTICIPANTS = "participantslist.xlsx"
 
 # Default Admin Password (Can be overridden via Streamlit Secrets)
@@ -14,7 +14,7 @@ ADMIN_PASSWORD = st.secrets.get("ADMIN_PASSWORD", "Admin@SKPS2026!")
 
 # Page Setup
 st.set_page_config(
-    page_title="SKPS Youth Festival - Category III Entry",
+    page_title="SKPS Youth Festival - Category IV Entry",
     layout="wide"
 )
 
@@ -41,10 +41,10 @@ def ensure_sample_databases():
     """Generates sample Excel files if missing or empty."""
     if not os.path.exists(DB_STUDENTS) or os.path.getsize(DB_STUDENTS) == 0:
         df_stud = pd.DataFrame([
-            {"ADM NO": "1001", "CHESTNO": "C101", "STUDENT NAME": "Ananya Nair", "CLASS": "8", "SECTION": "A", "GENDER": "Female", "HOUSE": "Blue"},
-            {"ADM NO": "1002", "CHESTNO": "C102", "STUDENT NAME": "Rohan Kumar", "CLASS": "8", "SECTION": "B", "GENDER": "Male", "HOUSE": "Red"},
-            {"ADM NO": "1003", "CHESTNO": "C103", "STUDENT NAME": "Devika S", "CLASS": "8", "SECTION": "A", "GENDER": "Female", "HOUSE": "Yellow"},
-            {"ADM NO": "1004", "CHESTNO": "C104", "STUDENT NAME": "Kevin Thomas", "CLASS": "8", "SECTION": "C", "GENDER": "Male", "HOUSE": "Green"},
+            {"ADM NO": "1001", "CHESTNO": "C101", "STUDENT NAME": "Ananya Nair", "CLASS": "10", "SECTION": "A", "GENDER": "Female", "HOUSE": "Blue"},
+            {"ADM NO": "1002", "CHESTNO": "C102", "STUDENT NAME": "Rohan Kumar", "CLASS": "10", "SECTION": "B", "GENDER": "Male", "HOUSE": "Red"},
+            {"ADM NO": "1003", "CHESTNO": "C103", "STUDENT NAME": "Devika S", "CLASS": "10", "SECTION": "A", "GENDER": "Female", "HOUSE": "Yellow"},
+            {"ADM NO": "1004", "CHESTNO": "C104", "STUDENT NAME": "Kevin Thomas", "CLASS": "10", "SECTION": "C", "GENDER": "Male", "HOUSE": "Green"},
         ])
         df_stud.to_excel(DB_STUDENTS, index=False)
 
@@ -112,7 +112,7 @@ else:
 # MAIN APP - ENTRY FOR PARTICIPATION
 # ==========================================
 st.title("SKPS YOUTH FESTIVAL SUVARNNAM 2026")
-st.subheader("CATEGORY III - 1. ENTRY FOR PARTICIPATION")
+st.subheader("CATEGORY IV - 1. ENTRY FOR PARTICIPATION")
 st.markdown("---")
 
 # Step 1: Admission Number Input & Search
