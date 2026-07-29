@@ -5,34 +5,50 @@ import streamlit as st
 # ==========================================
 # CONSTANTS & CONFIGURATION
 # ==========================================
-DB_STUDENTS = "studentdb4.xlsx"
-DB_ITEMS = "items4.xlsx"
+DB_STUDENTS = "studentdb3.xlsx"
+DB_ITEMS = "items3.xlsx"
 FILE_PARTICIPANTS = "participantslist.xlsx"
 
-# Default Admin Password (Change this or set 'ADMIN_PASSWORD' in Streamlit Secrets)
+# Default Admin Password (Can be overridden via Streamlit Secrets)
 ADMIN_PASSWORD = st.secrets.get("ADMIN_PASSWORD", "Admin@SKPS2026!")
 
 # Page Setup
 st.set_page_config(
-    page_title="SKPS Youth Festival - Entry for Participation",
+    page_title="SKPS Youth Festival - Category III Entry",
     layout="wide"
 )
 
 # ==========================================
-# INITIALIZATION HELPERS
+# HELPER FUNCTIONS FOR SAFE EXCEL READING
 # ==========================================
+def load_participants():
+    """Safely reads participant registrations, handling missing or corrupted files."""
+    if not os.path.exists(FILE_PARTICIPANTS):
+        return pd.DataFrame()
+    if os.path.getsize(FILE_PARTICIPANTS) == 0:
+        return pd.DataFrame()
+    try:
+        return pd.read_excel(FILE_PARTICIPANTS)
+    except Exception:
+        # If file is corrupted (e.g. BadZipFile), remove it so app can continue safely
+        try:
+            os.remove(FILE_PARTICIPANTS)
+        except OSError:
+            pass
+        return pd.DataFrame()
+
 def ensure_sample_databases():
-    """Generates sample Excel files if missing."""
-    if not os.path.exists(DB_STUDENTS):
+    """Generates sample Excel files if missing or empty."""
+    if not os.path.exists(DB_STUDENTS) or os.path.getsize(DB_STUDENTS) == 0:
         df_stud = pd.DataFrame([
-            {"ADM NO": "1001", "CHESTNO": "C101", "STUDENT NAME": "Ananya Nair", "CLASS": "10", "SECTION": "A", "GENDER": "Female", "HOUSE": "Blue"},
-            {"ADM NO": "1002", "CHESTNO": "C102", "STUDENT NAME": "Rohan Kumar", "CLASS": "10", "SECTION": "B", "GENDER": "Male", "HOUSE": "Red"},
-            {"ADM NO": "1003", "CHESTNO": "C103", "STUDENT NAME": "Devika S", "CLASS": "10", "SECTION": "A", "GENDER": "Female", "HOUSE": "Yellow"},
-            {"ADM NO": "1004", "CHESTNO": "C104", "STUDENT NAME": "Kevin Thomas", "CLASS": "10", "SECTION": "C", "GENDER": "Male", "HOUSE": "Green"},
+            {"ADM NO": "1001", "CHESTNO": "C101", "STUDENT NAME": "Ananya Nair", "CLASS": "8", "SECTION": "A", "GENDER": "Female", "HOUSE": "Blue"},
+            {"ADM NO": "1002", "CHESTNO": "C102", "STUDENT NAME": "Rohan Kumar", "CLASS": "8", "SECTION": "B", "GENDER": "Male", "HOUSE": "Red"},
+            {"ADM NO": "1003", "CHESTNO": "C103", "STUDENT NAME": "Devika S", "CLASS": "8", "SECTION": "A", "GENDER": "Female", "HOUSE": "Yellow"},
+            {"ADM NO": "1004", "CHESTNO": "C104", "STUDENT NAME": "Kevin Thomas", "CLASS": "8", "SECTION": "C", "GENDER": "Male", "HOUSE": "Green"},
         ])
         df_stud.to_excel(DB_STUDENTS, index=False)
 
-    if not os.path.exists(DB_ITEMS):
+    if not os.path.exists(DB_ITEMS) or os.path.getsize(DB_ITEMS) == 0:
         df_items = pd.DataFrame([
             {"ITEMCODE": "101", "ITEMNAME": "Light Music", "ONSTAGE/OFFSTAGE": "ONSTAGE", "SINGLE/GROUP": "SINGLE", "BOYS/GIRLS/COMMON": "COMMON"},
             {"ITEMCODE": "102", "ITEMNAME": "Classical Dance (Girls)", "ONSTAGE/OFFSTAGE": "ONSTAGE", "SINGLE/GROUP": "SINGLE", "BOYS/GIRLS/COMMON": "GIRLS"},
@@ -62,7 +78,7 @@ if admin_password_input == ADMIN_PASSWORD:
     st.sidebar.subheader("Admin Controls")
 
     # 1. Download Excel Data
-    if os.path.exists(FILE_PARTICIPANTS):
+    if os.path.exists(FILE_PARTICIPANTS) and os.path.getsize(FILE_PARTICIPANTS) > 0:
         with open(FILE_PARTICIPANTS, "rb") as f:
             file_bytes = f.read()
 
@@ -96,7 +112,7 @@ else:
 # MAIN APP - ENTRY FOR PARTICIPATION
 # ==========================================
 st.title("SKPS YOUTH FESTIVAL SUVARNNAM 2026")
-st.subheader("CATEGORY IV - 1. ENTRY FOR PARTICIPATION")
+st.subheader("CATEGORY III - 1. ENTRY FOR PARTICIPATION")
 st.markdown("---")
 
 # Step 1: Admission Number Input & Search
@@ -106,14 +122,13 @@ if st.button("Fetch Student", type="primary"):
     if not adm_no_input:
         st.warning("Please enter an Admission Number.")
     else:
-        # Check if already registered
+        # Check if already registered using safe loader
         already_registered = False
-        if os.path.exists(FILE_PARTICIPANTS):
-            df_existing = pd.read_excel(FILE_PARTICIPANTS)
-            if not df_existing.empty and "ADM NO" in df_existing.columns:
-                registered_adms = df_existing["ADM NO"].astype(str).str.strip().tolist()
-                if adm_no_input in registered_adms:
-                    already_registered = True
+        df_existing = load_participants()
+        if not df_existing.empty and "ADM NO" in df_existing.columns:
+            registered_adms = df_existing["ADM NO"].astype(str).str.strip().tolist()
+            if adm_no_input in registered_adms:
+                already_registered = True
 
         if already_registered:
             st.error(f"Registration Blocked: Student with Admission No. '{adm_no_input}' is already registered!")
@@ -168,7 +183,6 @@ if st.session_state.selected_student:
         col = cols[idx % 3]
 
         with col:
-            label = f"**{code}** - {name}\n\n*({category} | {sg_type} | {item_gender})*"
             if not allowed:
                 st.checkbox(f"{code} - {name} (Not Eligible)", disabled=True, key=f"cb_{code}")
             else:
@@ -253,9 +267,9 @@ if st.session_state.selected_student:
                         })
 
                     df_new = pd.DataFrame(new_records)
+                    df_existing = load_participants()
 
-                    if os.path.exists(FILE_PARTICIPANTS):
-                        df_existing = pd.read_excel(FILE_PARTICIPANTS)
+                    if not df_existing.empty:
                         if "Sl. No." in df_existing.columns:
                             df_existing = df_existing.drop(columns=["Sl. No."])
                         df_final = pd.concat([df_existing, df_new], ignore_index=True)
