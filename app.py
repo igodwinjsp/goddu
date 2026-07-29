@@ -3,13 +3,16 @@ import pandas as pd
 import streamlit as st
 
 # ==========================================
-# CONSTANTS & DIRECTORIES
+# CONSTANTS & CONFIGURATION
 # ==========================================
 DB_STUDENTS = "studentdb4.xlsx"
 DB_ITEMS = "items4.xlsx"
 FILE_PARTICIPANTS = "participantslist.xlsx"
 
-# Page Configuration
+# Default Admin Password (Change this or set 'ADMIN_PASSWORD' in Streamlit Secrets)
+ADMIN_PASSWORD = st.secrets.get("ADMIN_PASSWORD", "Admin@SKPS2026!")
+
+# Page Setup
 st.set_page_config(
     page_title="SKPS Youth Festival - Entry for Participation",
     layout="wide"
@@ -43,14 +46,58 @@ def ensure_sample_databases():
 
 ensure_sample_databases()
 
-# Header
-st.title("SKPS YOUTH FESTIVAL SUVARNNAM 2026")
-st.subheader("CATEGORY IV - 1. ENTRY FOR PARTICIPATION")
-st.markdown("---")
-
 # Initialize Session State
 if "selected_student" not in st.session_state:
     st.session_state.selected_student = None
+
+# ==========================================
+# SIDEBAR - ADMIN PANEL
+# ==========================================
+st.sidebar.title("🔒 Admin Panel")
+admin_password_input = st.sidebar.text_input("Enter Admin Password", type="password")
+
+if admin_password_input == ADMIN_PASSWORD:
+    st.sidebar.success("Admin Authenticated")
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Admin Controls")
+
+    # 1. Download Excel Data
+    if os.path.exists(FILE_PARTICIPANTS):
+        with open(FILE_PARTICIPANTS, "rb") as f:
+            file_bytes = f.read()
+
+        st.sidebar.download_button(
+            label="📥 Download Participants List (.xlsx)",
+            data=file_bytes,
+            file_name="participantslist.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
+        )
+    else:
+        st.sidebar.info("No registration data available to download yet.")
+
+    st.sidebar.markdown("---")
+
+    # 2. Clear All Data
+    if st.sidebar.button("⚠️ Clear All Registration Data", use_container_width=True):
+        if os.path.exists(FILE_PARTICIPANTS):
+            os.remove(FILE_PARTICIPANTS)
+            st.sidebar.success("All participant data has been cleared!")
+            st.rerun()
+        else:
+            st.sidebar.info("No data file exists to clear.")
+
+elif admin_password_input:
+    st.sidebar.error("Incorrect Password!")
+else:
+    st.sidebar.info("Enter password to unlock Admin controls.")
+
+# ==========================================
+# MAIN APP - ENTRY FOR PARTICIPATION
+# ==========================================
+st.title("SKPS YOUTH FESTIVAL SUVARNNAM 2026")
+st.subheader("CATEGORY IV - 1. ENTRY FOR PARTICIPATION")
+st.markdown("---")
 
 # Step 1: Admission Number Input & Search
 adm_no_input = st.text_input("Enter Admission No:", placeholder="e.g., 1001").strip()
@@ -131,7 +178,7 @@ if st.session_state.selected_student:
 
     st.write("---")
 
-    # Step 2: Confirm and Save Registration (Fixed parameter error)
+    # Step 2: Confirm and Save Registration
     if st.button("Confirm & Save Registration", type="primary"):
         if not selected_item_codes:
             st.warning("No items selected for participation!")
