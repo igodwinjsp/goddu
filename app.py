@@ -131,8 +131,8 @@ if st.session_state.selected_student:
 
     st.write("---")
 
-    # Step 2: Confirm and Save Registration
-    if st.button("Confirm & Save Registration", type="success"):
+    # Step 2: Confirm and Save Registration (Fixed parameter error)
+    if st.button("Confirm & Save Registration", type="primary"):
         if not selected_item_codes:
             st.warning("No items selected for participation!")
         else:
